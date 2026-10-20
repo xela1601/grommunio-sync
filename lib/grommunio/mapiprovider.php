@@ -94,7 +94,14 @@ class MAPIProvider {
 			foreach ($rows as $row) {
 				if (isset($row[PR_ATTACH_NUM])) {
 					$mapiattach = mapi_message_openattach($mapimessage, $row[PR_ATTACH_NUM]);
-					$message->picture = base64_encode(mapi_attach_openbin($mapiattach, PR_ATTACH_DATA_BIN));
+					$picture = base64_encode(mapi_attach_openbin($mapiattach, PR_ATTACH_DATA_BIN));
+					// a picture above the limit would make SyncObject->Check() drop the whole contact
+					if (strlen($picture) > SYNC_CONTACTS_MAXPICTURESIZE) {
+						SLog::Write(LOGLEVEL_WARN, sprintf("MAPIProvider->getContact(): contact picture is %d bytes (base64), above SYNC_CONTACTS_MAXPICTURESIZE (%d). Contact is synchronized without picture.", strlen($picture), SYNC_CONTACTS_MAXPICTURESIZE));
+
+						continue;
+					}
+					$message->picture = $picture;
 				}
 			}
 		}
